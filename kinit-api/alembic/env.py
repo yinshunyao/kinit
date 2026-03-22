@@ -33,6 +33,8 @@ fileConfig(config.config_file_name)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
+from application.database_url import resolve_alembic_sync_url
+
 # 导入项目中的基本映射类，与 需要迁移的 ORM 模型
 from apps.vadmin.auth.models import *
 from apps.vadmin.system.models import *
@@ -48,7 +50,7 @@ def run_migrations_offline():
     """
     以“脱机”模式运行迁移。
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = resolve_alembic_sync_url()
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -66,8 +68,10 @@ def run_migrations_online():
     """
     以“在线”模式运行迁移。
     """
+    ini_section = dict(config.get_section(config.config_ini_section, {}))
+    ini_section["sqlalchemy.url"] = resolve_alembic_sync_url()
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section),
+        ini_section,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

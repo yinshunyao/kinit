@@ -84,6 +84,19 @@ Pycharm 2022.3.2
 
 ## 使用
 
+### 数据库连接（环境变量注入）
+
+MySQL 连接串**不要**写在 `application/config/*.py` 或带真实密码的 `alembic.ini` 中。统一使用环境变量 **`KINIT_DATABASE_URL`**（推荐在项目根目录创建 `.env`，可参考 `.env.example`；启动时由 `python-dotenv` 加载）。
+
+- 支持 `mysql+pymysql://...` 或 `mysql+asyncmy://...`；应用运行时会使用 **asyncmy**，Alembic 迁移会自动换为 **pymysql**。
+- 开发与生产共用同一变量，不再按环境拆分数据库 URL。
+
+示例（请替换为实际主机、库名与口令）：
+
+```bash
+export KINIT_DATABASE_URL='mysql+pymysql://USER:PASSWORD@HOST:3306/DATABASE'
+```
+
 ```
 source /opt/env/kinit-pro/bin/activate
 

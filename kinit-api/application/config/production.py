@@ -10,8 +10,12 @@
 Mysql 数据库配置项
 连接引擎官方文档：https://www.osgeo.cn/sqlalchemy/core/engines.html
 数据库链接配置说明：mysql+asyncmy://数据库用户名:数据库密码@数据库地址:数据库端口/数据库名称
+
+实际连接串由环境变量 KINIT_DATABASE_URL 注入（见 application/database_url.py），勿在此文件写死密码。
 """
-SQLALCHEMY_DATABASE_URL = "mysql+asyncmy://root:123456@177.8.0.7:3306/kinit"
+from application.database_url import resolve_sqlalchemy_async_url
+
+SQLALCHEMY_DATABASE_URL = resolve_sqlalchemy_async_url()
 
 """
 Redis 数据库配置
