@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 # @version        : 1.0
 # @Create Time    : 2021/10/18 22:19
 # @File           : operation.py
@@ -7,7 +9,9 @@
 # @desc           : pydantic 模型，用于数据库序列化操作
 
 
-from pydantic import BaseModel, ConfigDict
+import json
+
+from pydantic import BaseModel, ConfigDict, field_validator
 from core.data_types import DatetimeStr
 
 
@@ -33,3 +37,15 @@ class OperationRecordSimpleOut(OperationRecord):
     model_config = ConfigDict(from_attributes=True)
 
     create_datetime: DatetimeStr
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _tags_from_json(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v

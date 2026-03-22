@@ -5,8 +5,12 @@ import random
 from enum import Enum
 from apscheduler.jobstores.base import ConflictingIdError
 from core.scheduler import Scheduler
-from core.mongo import get_database as get_mongo
-from application.settings import MONGO_DB_NAME, MONGO_DB_URL, REDIS_DB_URL, SUBSCRIBE, SCHEDULER_TASK, \
+from sqlalchemy import create_engine
+
+from application.database_url import resolve_alembic_sync_url
+from core.mongo import get_database, set_database
+from core.sql_backend import SqlTaskBackend
+from application.settings import MONGO_DB_ENABLE, MONGO_DB_NAME, MONGO_DB_URL, REDIS_DB_URL, SUBSCRIBE, SCHEDULER_TASK, \
     SCHEDULER_TASK_RECORD
 from core.redis import get_database as get_redis
 from core.logger import logger
@@ -23,6 +27,7 @@ class ScheduledTask:
 
     def __init__(self):
         self.mongo = None
+        self._sql_engine = None
         self.scheduler = None
         self.rd = None
 
@@ -92,7 +97,10 @@ class ScheduledTask:
         启动监听订阅消息（阻塞）
         :return:
         """
-        self.start_mongo()
+        if MONGO_DB_ENABLE:
+            self.start_mongo()
+        else:
+            self.start_sql()
         self.start_scheduler()
         self.start_redis()
 
@@ -121,8 +129,14 @@ class ScheduledTask:
         启动 mongo
         :return:
         """
-        self.mongo = get_mongo()
+        self.mongo = get_database()
         self.mongo.connect_to_database(MONGO_DB_URL, MONGO_DB_NAME)
+
+    def start_sql(self) -> None:
+        """Mongo 关闭时使用 MySQL 存任务与调度日志。"""
+        self._sql_engine = create_engine(resolve_alembic_sync_url(), pool_pre_ping=True)
+        set_database(SqlTaskBackend(self._sql_engine))
+        self.mongo = get_database()
 
     def start_scheduler(self) -> None:
         """
@@ -130,7 +144,10 @@ class ScheduledTask:
         :return:
         """
         self.scheduler = Scheduler()
-        self.scheduler.start()
+        if MONGO_DB_ENABLE:
+            self.scheduler.start()
+        else:
+            self.scheduler.start(sql_engine=self._sql_engine)
         print("Scheduler 启动成功")
 
     def start_redis(self) -> None:
@@ -148,7 +165,8 @@ class ScheduledTask:
         关闭程序
         :return:
         """
-        self.mongo.close_database_connection()
+        if self.mongo:
+            self.mongo.close_database_connection()
         if self.scheduler:
             self.scheduler.shutdown()
         if self.rd:

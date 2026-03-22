@@ -9,6 +9,8 @@
 FastApi 更新文档：https://github.com/tiangolo/fastapi/releases
 FastApi Github：https://github.com/tiangolo/fastapi
 Typer 官方文档：https://typer.tiangolo.com/
+
+环境变量：MySQL 见 KINIT_DATABASE_URL；Redis 见 KINIT_REDIS_URL 与 REDIS_DB_ENABLE（加载逻辑在 application/settings.py）。
 """
 
 from fastapi import FastAPI

@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# 见 user.py：避免 Paging 在 Depends() 中变成 ForwardRef。
+
 # @version        : 1.0
 # @Create Time    : 2023/12/18 10:19
 # @File           : dept.py

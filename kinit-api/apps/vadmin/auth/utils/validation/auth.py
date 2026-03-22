@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 # @version        : 1.0
 # @Create Time    : 2021/10/24 16:44
 # @File           : auth.py

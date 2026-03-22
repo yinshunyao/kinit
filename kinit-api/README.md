@@ -84,9 +84,31 @@ Pycharm 2022.3.2
 
 ## 使用
 
+### 简单一键启动方式
+```shell
+# 不指定python
+./run.sh
+# 指定python
+PYTHON=/usr/local/bin/python3 ./run.sh
+```
+
 ### 数据库连接（环境变量注入）
 
-MySQL 连接串**不要**写在 `application/config/*.py` 或带真实密码的 `alembic.ini` 中。统一使用环境变量 **`KINIT_DATABASE_URL`**（推荐在项目根目录创建 `.env`，可参考 `.env.example`；启动时由 `python-dotenv` 加载）。
+MySQL 连接串**不要**写在 `application/config/*.py` 或带真实密码的 `alembic.ini` 中。优先使用环境变量 **`KINIT_DATABASE_URL`**（推荐在项目根目录创建 `.env`，可参考 `.env.example`；启动时由 `python-dotenv` 加载）。
+
+**密码含 `@`、`:`、`%` 等**：可二选一——(1) 写在 URL 里时做百分号编码（例如 `@` → `%40`，`%` → `%25`）；(2) **推荐**改用分项变量，密码写明文、无需编码：`KINIT_DATABASE_HOST`、`KINIT_DATABASE_PORT`（可选，默认 3306）、`KINIT_DATABASE_NAME`、`KINIT_DATABASE_USER`、`KINIT_DATABASE_PASSWORD`。与 `KINIT_DATABASE_URL` **二选一**（设置了完整 URL 时不读分项）。
+
+若仍出现 `1045 Access denied ... (using password: YES)`：先确认口令与 MySQL 中一致；再在服务器上检查 `root` 是否允许从你的客户端 IP 登录（`mysql.user` 中 `Host` 常为 `localhost` 时需为远程 IP 或 `%` 单独授权）。
+
+是否启用 MongoDB 也可在 `.env` 中设置 **`MONGO_DB_ENABLE`**（如 `false` / `0` / `no`），会覆盖 `application/config/*.py` 里的默认值；关闭后操作审计与定时任务相关数据走 MySQL，需与 `KINIT_DATABASE_URL` 及 Alembic 迁移一致。
+
+Redis 连接串**不要**写在 `application/config/*.py` 中。启用 Redis 时（默认 `REDIS_DB_ENABLE=true`，可在 `.env` 中用同名变量覆盖）必须设置 **`KINIT_REDIS_URL`**：
+
+- 无密码：`KINIT_REDIS_URL=redis://127.0.0.1:6379/0`
+- 有密码：`KINIT_REDIS_URL=redis://:你的密码@127.0.0.1:6379/1`（注意 `redis://:` 与密码之间的冒号）
+- TLS 使用 `rediss://` 前缀
+
+关闭 Redis：`REDIS_DB_ENABLE=false`（登录限流、短信/微信等依赖 Redis 的能力将不可用，见运行日志与接口错误提示）。
 
 - 支持 `mysql+pymysql://...` 或 `mysql+asyncmy://...`；应用运行时会使用 **asyncmy**，Alembic 迁移会自动换为 **pymysql**。
 - 开发与生产共用同一变量，不再按环境拆分数据库 URL。
@@ -95,6 +117,7 @@ MySQL 连接串**不要**写在 `application/config/*.py` 或带真实密码的 
 
 ```bash
 export KINIT_DATABASE_URL='mysql+pymysql://USER:PASSWORD@HOST:3306/DATABASE'
+export KINIT_REDIS_URL='redis://127.0.0.1:6379/0'
 ```
 
 ```
@@ -135,6 +158,17 @@ python main.py init --env dev
 ```shell
 # 直接运行main文件
 python main.py run
+```
+
+### Apple Silicon（M 系列）与 asyncmy
+
+若出现 `incompatible architecture (have 'x86_64', need 'arm64')`，说明虚拟环境是用 **x86_64 / Rosetta** 下的 Python 创建的，`pip` 装上了错误架构的 `asyncmy`。
+
+处理方式：删除 `.venv` 后使用 **arm64** 的 Python 再执行 `run.sh`（脚本在 arm64 上会优先尝试 `/opt/homebrew/bin/python3.10`）：
+
+```shell
+rm -rf .venv
+PYTHON=/opt/homebrew/bin/python3.10 ./run.sh
 ```
 
 ## 其他操作

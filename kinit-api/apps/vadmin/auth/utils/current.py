@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
+# 不使用 from __future__ import annotations：否则 FullAdminAuth.__call__ 中 request: Request
+# 会变成前向引用，FastAPI/Pydantic 解析 Depends 时 eval 不到 Request（NameError）。
+
 # @version        : 1.0
 # @Create Time    : 2021/10/24 16:44
 # @File           : current.py
 # @IDE            : PyCharm
 # @desc           : 获取认证后的信息工具
 
-from typing import Annotated
+from typing import Annotated, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from apps.vadmin.auth.crud import UserDal
@@ -76,7 +79,7 @@ class FullAdminAuth(AuthValidation):
     如果有权限，那么会验证该用户是否包括权限列表中的其中一个权限
     """
 
-    def __init__(self, permissions: list[str] | None = None):
+    def __init__(self, permissions: Optional[list[str]] = None):
         if permissions:
             self.permissions = set(permissions)
         else:

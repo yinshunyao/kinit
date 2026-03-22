@@ -18,11 +18,10 @@ from application.database_url import resolve_sqlalchemy_async_url
 SQLALCHEMY_DATABASE_URL = resolve_sqlalchemy_async_url()
 
 """
-Redis 数据库配置
-格式："redis://:密码@地址:端口/数据库名称"
+Redis：是否启用由本项与 .env 中 REDIS_DB_ENABLE 决定；
+连接串由环境变量 KINIT_REDIS_URL 注入（见 application/redis_config.py），勿在此写死密码。
 """
 REDIS_DB_ENABLE = True
-REDIS_DB_URL = "redis://:123456@177.8.0.5:6379/1"
 
 """
 MongoDB 数据库配置

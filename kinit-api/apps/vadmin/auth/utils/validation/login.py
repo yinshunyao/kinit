@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 # @version        : 1.0
 # @Create Time    : 2022/11/9 10:15 
 # @File           : login.py

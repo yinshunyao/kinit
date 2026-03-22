@@ -12,7 +12,8 @@ from . import crud
 from apps.vadmin.auth.utils.current import AllUserAuth
 from apps.vadmin.auth.utils.validation.auth import Auth
 from .params import LoginParams, OperationParams, SMSParams
-from core.database import mongo_getter
+from application.settings import MONGO_DB_ENABLE
+from core.database import mongo_getter_optional
 
 app = APIRouter()
 
@@ -29,11 +30,15 @@ async def get_record_login(p: LoginParams = Depends(), auth: Auth = Depends(AllU
 @app.get("/operations", summary="获取操作日志列表")
 async def get_record_operation(
         p: OperationParams = Depends(),
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         auth: Auth = Depends(AllUserAuth())
 ):
-    count = await crud.OperationRecordDal(db).get_count(**p.to_count())
-    datas = await crud.OperationRecordDal(db).get_datas(**p.dict())
+    if MONGO_DB_ENABLE:
+        count = await crud.OperationRecordDal(mongo_db).get_count(**p.to_count())
+        datas = await crud.OperationRecordDal(mongo_db).get_datas(**p.dict())
+    else:
+        count = await crud.OperationRecordSqlDal(auth.db).get_count(**p.to_count())
+        datas = await crud.OperationRecordSqlDal(auth.db).get_datas(**p.dict())
     return SuccessResponse(datas, count=count)
 
 

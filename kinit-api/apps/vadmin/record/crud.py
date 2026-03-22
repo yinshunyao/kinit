@@ -8,10 +8,12 @@
 
 import random
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from sqlalchemy import false
 from sqlalchemy.ext.asyncio import AsyncSession
 from . import models, schemas
 from core.crud import DalBase
 from core.mongo_manage import MongoManage
+from core.mongo_mysql_aux import dumps_tags
 
 
 class LoginRecordDal(DalBase):
@@ -86,3 +88,39 @@ class OperationRecordDal(MongoManage):
         self.collection = db["operation_record"]
         self.schema = schemas.OperationRecordSimpleOut
         self.is_object_id = True
+
+
+class OperationRecordSqlDal(DalBase):
+    """操作审计：MONGO_DB_ENABLE=False 时使用。"""
+
+    def __init__(self, db: AsyncSession):
+        super().__init__(db, models.VadminOperationRecord, schemas.OperationRecordSimpleOut)
+
+    async def get_count(self, **kwargs) -> int:
+        return await super().get_count(v_where=[self.model.is_delete == false()], **kwargs)
+
+    async def create_middleware_row(self, document: dict) -> None:
+        data = {}
+        for key in (
+            "process_time",
+            "telephone",
+            "user_id",
+            "user_name",
+            "request_api",
+            "client_ip",
+            "system",
+            "browser",
+            "request_method",
+            "api_path",
+            "summary",
+            "description",
+            "route_name",
+            "status_code",
+            "content_length",
+            "params",
+        ):
+            if key in document:
+                data[key] = document[key]
+        data["tags"] = dumps_tags(document.get("tags"))
+        obj = self.model(**data)
+        await self.flush(obj)

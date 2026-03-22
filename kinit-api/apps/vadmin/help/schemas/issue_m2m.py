@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 # @version        : 1.0
 # @Create Time    : 2023/2/17 15:18 
 # @File           : issue_m2m.py.py

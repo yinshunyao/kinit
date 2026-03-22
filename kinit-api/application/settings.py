@@ -50,6 +50,15 @@ if DEBUG:
 else:
     from application.config.production import *
 
+from application.env_config import env_bool
+
+# 可通过 .env / 环境变量覆盖 application/config 中的默认开关
+MONGO_DB_ENABLE = env_bool("MONGO_DB_ENABLE", MONGO_DB_ENABLE)
+REDIS_DB_ENABLE = env_bool("REDIS_DB_ENABLE", REDIS_DB_ENABLE)
+from application.redis_config import resolve_redis_db_url
+
+REDIS_DB_URL = resolve_redis_db_url(REDIS_DB_ENABLE)
+
 """项目根目录"""
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -147,7 +156,7 @@ IGNORE_OPERATION_FUNCTION = ["post_dicts_details"]
 """
 MIDDLEWARES = [
     "core.middleware.register_request_log_middleware" if REQUEST_LOG_RECORD else None,
-    "core.middleware.register_operation_record_middleware" if OPERATION_LOG_RECORD and MONGO_DB_ENABLE else None,
+    "core.middleware.register_operation_record_middleware" if OPERATION_LOG_RECORD else None,
     "core.middleware.register_demo_env_middleware" if DEMO else None,
     "core.middleware.register_jwt_refresh_middleware"
 ]

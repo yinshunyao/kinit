@@ -19,7 +19,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.job import Job
 from .listener import before_job_execution
 from apscheduler.events import EVENT_JOB_EXECUTED
-from application.settings import MONGO_DB_NAME, SCHEDULER_TASK_JOBS, TASKS_ROOT
+from application.settings import MONGO_DB_ENABLE, MONGO_DB_NAME, SCHEDULER_TASK_JOBS, TASKS_ROOT
 from core.mongo import get_database
 
 
@@ -31,17 +31,24 @@ class Scheduler:
         self.scheduler = None
         self.db = None
 
-    def start(self, listener: bool = True) -> None:
+    def start(self, listener: bool = True, sql_engine=None) -> None:
         """
         创建调度器
         :param listener: 是否注册事件监听器
+        :param sql_engine: MONGO_DB_ENABLE=False 时传入同步 SQLAlchemy Engine，使用 SQLAlchemyJobStore
         :return:
         """
         self.scheduler = BackgroundScheduler()
         if listener:
             # 注册事件监听器
             self.scheduler.add_listener(before_job_execution, EVENT_JOB_EXECUTED)
-        self.scheduler.add_jobstore(self.__get_mongodb_job_store())
+        if MONGO_DB_ENABLE:
+            self.scheduler.add_jobstore(self.__get_mongodb_job_store())
+        else:
+            from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
+
+            assert sql_engine is not None
+            self.scheduler.add_jobstore(SQLAlchemyJobStore(engine=sql_engine, tablename="apscheduler_jobs"))
         self.scheduler.start()
 
     def __get_mongodb_job_store(self) -> MongoDBJobStore:

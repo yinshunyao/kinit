@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 # @version        : 1.0
 # @Create Time    : 2021/10/18 22:18
 # @File           : crud.py
@@ -506,3 +508,6 @@ class SchedulerTaskJobsDal(MongoManage):
 
     def __init__(self, db: AsyncIOMotorDatabase):
         super(SchedulerTaskJobsDal, self).__init__(db, "scheduler_task_jobs", is_object_id=False)
+
+
+from .crud_task_sql import TaskGroupSqlDal, TaskRecordSqlDal, TaskSqlDal  # noqa: E402

@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# 见 user.py：避免 Paging 在 Depends() 中变成 ForwardRef。
+
 # @version        : 1.0
 # @Create Time    : 2021/10/18 22:19
 # @File           : role.py

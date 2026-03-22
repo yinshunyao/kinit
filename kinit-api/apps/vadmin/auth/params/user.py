@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+# 不使用 from __future__ import annotations：否则 params: Paging = Depends() 中 Paging 变为前向引用，
+# FastAPI 解析类依赖时会得到 ForwardRef('Paging')，触发 “is not a callable object”。
+
 # @version        : 1.0
 # @Create Time    : 2021/10/18 22:19
 # @File           : user.py

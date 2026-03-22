@@ -6,8 +6,9 @@
 # @IDE            : PyCharm
 # @desc           : 任务基础类
 
-import re
 import pymysql
+from sqlalchemy.engine.url import make_url
+
 from application.settings import SQLALCHEMY_DATABASE_URL
 from core.logger import logger
 
@@ -23,22 +24,13 @@ class DBGetter:
         连接系统中配置的 mysql 数据库
         """
         try:
-            connection_string = SQLALCHEMY_DATABASE_URL.split("//")[1]
-            pattern = r'^(?P<username>[^:]+):(?P<password>[^@]+)@(?P<host>[^:/]+):(?P<port>\d+)/(?P<database>[^/]+)$'
-            match = re.match(pattern, connection_string)
-
-            username = match.group('username')
-            password = match.group('password')
-            host = match.group('host')
-            port = int(match.group('port'))
-            database = match.group('database')
-
+            u = make_url(SQLALCHEMY_DATABASE_URL)
             self.mysql_conn = pymysql.connect(
-                host=host,
-                port=port,
-                user=username,
-                password=password,
-                database=database
+                host=u.host,
+                port=int(u.port or 3306),
+                user=u.username or "",
+                password=u.password or "",
+                database=u.database or "",
             )
             self.mysql_cursor = self.mysql_conn.cursor()
         except pymysql.err.OperationalError as e:

@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, Body, UploadFile, Form, Request
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from sqlalchemy.ext.asyncio import AsyncSession
 from application.settings import ALIYUN_OSS
-from core.database import db_getter, redis_getter, mongo_getter
+from application.settings import MONGO_DB_ENABLE
+from core.database import db_getter, redis_getter, mongo_getter_optional
 from utils.file.aliyun_oss import AliyunOSS, BucketConf
 from utils.file.file_manage import FileManage
 from utils.response import SuccessResponse, ErrorResponse
@@ -185,68 +186,86 @@ async def get_settings_agreement(auth: Auth = Depends(OpenAuth())):
 @app.get("/tasks", summary="获取定时任务列表")
 async def get_tasks(
         p: TaskParams = Depends(),
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         auth: Auth = Depends(AllUserAuth())
 ):
-    datas, count = await crud.TaskDal(db).get_tasks(**p.dict())
+    if MONGO_DB_ENABLE:
+        datas, count = await crud.TaskDal(mongo_db).get_tasks(**p.dict())
+    else:
+        datas, count = await crud.TaskSqlDal(auth.db).get_tasks(**p.dict())
     return SuccessResponse(datas, count=count)
 
 
 @app.post("/tasks", summary="添加定时任务")
 async def post_tasks(
         data: schemas.Task,
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         rd: Redis = Depends(redis_getter),
         auth: Auth = Depends(AllUserAuth())
 ):
-    return SuccessResponse(await crud.TaskDal(db).create_task(rd, data))
+    if MONGO_DB_ENABLE:
+        return SuccessResponse(await crud.TaskDal(mongo_db).create_task(rd, data))
+    return SuccessResponse(await crud.TaskSqlDal(auth.db).create_task(rd, data))
 
 
 @app.put("/tasks", summary="更新定时任务")
 async def put_tasks(
         _id: str,
         data: schemas.Task,
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         rd: Redis = Depends(redis_getter),
         auth: Auth = Depends(AllUserAuth())
 ):
-    return SuccessResponse(await crud.TaskDal(db).put_task(rd, _id, data))
+    if MONGO_DB_ENABLE:
+        return SuccessResponse(await crud.TaskDal(mongo_db).put_task(rd, _id, data))
+    return SuccessResponse(await crud.TaskSqlDal(auth.db).put_task(rd, _id, data))
 
 
 @app.delete("/tasks", summary="删除单个定时任务")
 async def delete_task(
         _id: str,
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         auth: Auth = Depends(AllUserAuth())
 ):
-    return SuccessResponse(await crud.TaskDal(db).delete_task(_id))
+    if MONGO_DB_ENABLE:
+        return SuccessResponse(await crud.TaskDal(mongo_db).delete_task(_id))
+    return SuccessResponse(await crud.TaskSqlDal(auth.db).delete_task(_id))
 
 
 @app.get("/task", summary="获取定时任务详情")
 async def get_task(
         _id: str,
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         auth: Auth = Depends(AllUserAuth())
 ):
-    return SuccessResponse(await crud.TaskDal(db).get_task(_id, v_schema=schemas.TaskSimpleOut))
+    if MONGO_DB_ENABLE:
+        return SuccessResponse(await crud.TaskDal(mongo_db).get_task(_id, v_schema=schemas.TaskSimpleOut))
+    return SuccessResponse(await crud.TaskSqlDal(auth.db).get_task(_id, v_schema=schemas.TaskSimpleOut))
 
 
 @app.post("/task", summary="执行一次定时任务")
 async def run_once_task(
         _id: str,
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         rd: Redis = Depends(redis_getter),
         auth: Auth = Depends(AllUserAuth())
 ):
-    return SuccessResponse(await crud.TaskDal(db).run_once_task(rd, _id))
+    if MONGO_DB_ENABLE:
+        return SuccessResponse(await crud.TaskDal(mongo_db).run_once_task(rd, _id))
+    return SuccessResponse(await crud.TaskSqlDal(auth.db).run_once_task(rd, _id))
 
 
 ###########################################################
 #    定时任务分组管理
 ###########################################################
 @app.get("/task/group/options", summary="获取定时任务分组选择项列表")
-async def get_task_group_options(db: AsyncIOMotorDatabase = Depends(mongo_getter), auth: Auth = Depends(AllUserAuth())):
-    return SuccessResponse(await crud.TaskGroupDal(db).get_datas(limit=0))
+async def get_task_group_options(
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
+        auth: Auth = Depends(AllUserAuth()),
+):
+    if MONGO_DB_ENABLE:
+        return SuccessResponse(await crud.TaskGroupDal(mongo_db).get_datas(limit=0))
+    return SuccessResponse(await crud.TaskGroupSqlDal(auth.db).get_datas(limit=0))
 
 
 ###########################################################
@@ -255,9 +274,13 @@ async def get_task_group_options(db: AsyncIOMotorDatabase = Depends(mongo_getter
 @app.get("/task/records", summary="获取定时任务调度日志列表")
 async def get_task_records(
         p: TaskRecordParams = Depends(),
-        db: AsyncIOMotorDatabase = Depends(mongo_getter),
+        mongo_db: AsyncIOMotorDatabase | None = Depends(mongo_getter_optional),
         auth: Auth = Depends(AllUserAuth())
 ):
-    count = await crud.TaskRecordDal(db).get_count(**p.to_count())
-    datas = await crud.TaskRecordDal(db).get_datas(**p.dict())
+    if MONGO_DB_ENABLE:
+        count = await crud.TaskRecordDal(mongo_db).get_count(**p.to_count())
+        datas = await crud.TaskRecordDal(mongo_db).get_datas(**p.dict())
+    else:
+        count = await crud.TaskRecordSqlDal(auth.db).get_count(**p.to_count())
+        datas = await crud.TaskRecordSqlDal(auth.db).get_datas(**p.dict())
     return SuccessResponse(datas, count=count)

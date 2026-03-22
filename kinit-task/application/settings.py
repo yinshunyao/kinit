@@ -7,6 +7,14 @@
 # @desc           : 简要说明
 
 import os
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
 
 """项目根目录"""
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,6 +30,10 @@ if DEBUG:
     from application.config.development import *
 else:
     from application.config.production import *
+
+from application.env_config import env_bool
+
+MONGO_DB_ENABLE = env_bool("MONGO_DB_ENABLE", MONGO_DB_ENABLE)
 
 
 """

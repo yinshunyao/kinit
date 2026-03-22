@@ -12,6 +12,7 @@ from core.database import db_getter
 from utils.excel.excel_manage import ExcelManage
 from application.settings import BASE_DIR, VERSION
 import os
+import sys
 from apps.vadmin.auth import models as auth_models
 from apps.vadmin.system import models as system_models
 from apps.vadmin.help import models as help_models
@@ -48,8 +49,9 @@ class InitializeData:
         """
         模型迁移映射到数据库
         """
-        subprocess.check_call(['alembic', '--name', f'{env.value}', 'revision', '--autogenerate', '-m', f'{VERSION}'], cwd=BASE_DIR)
-        subprocess.check_call(['alembic', '--name', f'{env.value}', 'upgrade', 'head'], cwd=BASE_DIR)
+        alembic_cmd = [sys.executable, '-m', 'alembic', '--name', f'{env.value}']
+        subprocess.check_call([*alembic_cmd, 'revision', '--autogenerate', '-m', f'{VERSION}'], cwd=BASE_DIR)
+        subprocess.check_call([*alembic_cmd, 'upgrade', 'head'], cwd=BASE_DIR)
         print(f"环境：{env}  {VERSION} 数据库表迁移完成")
 
     def __serializer_data(self):

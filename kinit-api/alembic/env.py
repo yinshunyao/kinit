@@ -68,7 +68,9 @@ def run_migrations_online():
     """
     以“在线”模式运行迁移。
     """
-    ini_section = dict(config.get_section(config.config_ini_section, {}))
+    # 勿用 dict(...)：star import 会带入 apps.vadmin.system.models.dict 子模块，遮蔽内置 dict
+    _section = config.get_section(config.config_ini_section, {}) or {}
+    ini_section = {**_section}
     ini_section["sqlalchemy.url"] = resolve_alembic_sync_url()
     connectable = engine_from_config(
         ini_section,

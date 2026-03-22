@@ -20,8 +20,8 @@ from user_agents import parse
 from application.settings import OPERATION_RECORD_METHOD, MONGO_DB_ENABLE, IGNORE_OPERATION_FUNCTION, \
     DEMO_WHITE_LIST_PATH, DEMO, DEMO_BLACK_LIST_PATH
 from utils.response import ErrorResponse
-from apps.vadmin.record.crud import OperationRecordDal
-from core.database import mongo_getter
+from apps.vadmin.record.crud import OperationRecordDal, OperationRecordSqlDal
+from core.database import mongo_getter, session_factory
 from utils import status
 
 
@@ -54,7 +54,7 @@ def register_request_log_middleware(app: FastAPI):
 def register_operation_record_middleware(app: FastAPI):
     """
     操作记录中间件
-    用于将使用认证的操作全部记录到 mongodb 数据库中
+    将已认证请求写入操作审计（Mongo 或 MySQL，取决于 MONGO_DB_ENABLE）
     :param app:
     :return:
     """
@@ -63,8 +63,6 @@ def register_operation_record_middleware(app: FastAPI):
     async def operation_record_middleware(request: Request, call_next):
         start_time = time.time()
         response = await call_next(request)
-        if not MONGO_DB_ENABLE:
-            return response
         telephone = request.scope.get('telephone', None)
         user_id = request.scope.get('user_id', None)
         user_name = request.scope.get('user_name', None)
@@ -114,7 +112,12 @@ def register_operation_record_middleware(app: FastAPI):
             "create_datetime": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "params": json.dumps(params)
         }
-        await OperationRecordDal(mongo_getter(request)).create_data(document)
+        if MONGO_DB_ENABLE:
+            await OperationRecordDal(mongo_getter(request)).create_data(document)
+        else:
+            async with session_factory() as session:
+                async with session.begin():
+                    await OperationRecordSqlDal(session).create_middleware_row(document)
         return response
 
 

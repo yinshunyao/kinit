@@ -125,3 +125,10 @@ def mongo_getter(request: Request) -> AsyncIOMotorDatabase:
             desc="请启用 application/settings.py: MONGO_DB_ENABLE"
         )
     return request.app.state.mongo
+
+
+def mongo_getter_optional(request: Request) -> AsyncIOMotorDatabase | None:
+    """MONGO_DB_ENABLE=True 时返回 app.state.mongo；为 False 时返回 None（由调用方改走 MySQL）。"""
+    if not MONGO_DB_ENABLE:
+        return None
+    return mongo_getter(request)
