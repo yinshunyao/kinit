@@ -42,31 +42,37 @@ import jwt
 app = APIRouter()
 
 
-@app.post("/api/login", summary="API 手机号密码登录", description="Swagger API 文档登录认证")
+@app.post("/api/login", summary="API 密码登录", description="Swagger：用户名可为手机号或账号（name，须含字母）")
 async def api_login_for_access_token(
     request: Request,
     data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(db_getter)
 ):
-    user = await UserDal(db).get_data(telephone=data.username, v_return_none=True)
+    from core.login_identifier import validate_password_login_identifier
+
     error_code = status.HTTP_401_UNAUTHORIZED
+    try:
+        login_id = validate_password_login_identifier(data.username or "")
+    except ValueError as e:
+        raise CustomException(status_code=error_code, code=error_code, msg=str(e))
+    user = await UserDal(db).resolve_user_password_login(login_id)
     if not user:
-        raise CustomException(status_code=error_code, code=error_code, msg="该手机号不存在")
+        raise CustomException(status_code=error_code, code=error_code, msg="账号或密码错误")
     result = VadminUser.verify_password(data.password, user.password)
     if not result:
-        raise CustomException(status_code=error_code, code=error_code, msg="手机号或密码错误")
+        raise CustomException(status_code=error_code, code=error_code, msg="账号或密码错误")
     if not user.is_active:
-        raise CustomException(status_code=error_code, code=error_code, msg="此手机号已被冻结")
+        raise CustomException(status_code=error_code, code=error_code, msg="此账号已被冻结")
     elif not user.is_staff:
-        raise CustomException(status_code=error_code, code=error_code, msg="此手机号无权限")
+        raise CustomException(status_code=error_code, code=error_code, msg="此账号无权限")
     access_token = LoginManage.create_token({"sub": user.telephone, "password": user.password})
-    record = LoginForm(platform='2', method='0', telephone=data.username, password=data.password)
+    record = LoginForm(platform='2', method='0', telephone=login_id, password=data.password)
     resp = {"access_token": access_token, "token_type": "bearer"}
     await VadminLoginRecord.create_login_record(db, record, True, request, resp)
     return resp
 
 
-@app.post("/login", summary="手机号密码登录", description="员工登录通道，限制最多输错次数，达到最大值后将is_active=False")
+@app.post("/login", summary="密码/短信登录", description="密码登录支持手机号或账号；短信登录仅手机号。输错次数达上限将 is_active=False")
 async def login_for_access_token(
     request: Request,
     data: LoginForm,

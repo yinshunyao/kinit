@@ -9,12 +9,13 @@ from __future__ import annotations
 # @desc           : 登录验证装饰器
 
 from fastapi import Request
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, model_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 from application.settings import DEFAULT_AUTH_ERROR_MAX_NUMBER, DEMO, REDIS_DB_ENABLE
 from apps.vadmin.auth import crud, schemas
 from core.database import redis_getter
 from core.validator import vali_telephone
+from core.login_identifier import validate_password_login_identifier
 from utils.count import Count
 
 
@@ -24,8 +25,18 @@ class LoginForm(BaseModel):
     method: str = '0'  # 认证方式，0：密码登录，1：短信登录，2：微信一键登录
     platform: str = '0'  # 登录平台，0：PC端管理系统，1：移动端管理系统
 
-    # 重用验证器：https://docs.pydantic.dev/dev-v2/usage/validators/#reuse-validators
-    normalize_telephone = field_validator('telephone')(vali_telephone)
+    @model_validator(mode='after')
+    def normalize_login_identifier(self):
+        raw = (self.telephone or '').strip()
+        if not raw:
+            raise ValueError('请输入手机号或账号')
+        if self.method == '1':
+            self.telephone = vali_telephone(raw)
+        elif self.method == '0':
+            self.telephone = validate_password_login_identifier(raw)
+        else:
+            self.telephone = raw
+        return self
 
 
 class WXLoginForm(BaseModel):
@@ -58,9 +69,9 @@ class LoginValidation:
         if data.platform not in ["0", "1"] or data.method not in ["0", "1"]:
             self.result.msg = "无效参数"
             return self.result
-        user = await crud.UserDal(db).get_data(telephone=data.telephone, v_return_none=True)
+        user = await crud.UserDal(db).get_user_for_login(data.telephone, data.method)
         if not user:
-            self.result.msg = "该手机号不存在！"
+            self.result.msg = "该手机号不存在！" if data.method == "1" else "账号或密码错误"
             return self.result
 
         result = await self.func(self, data=data, user=user, request=request)
@@ -81,9 +92,9 @@ class LoginValidation:
                     user.is_active = False
                     await db.flush()
         elif not user.is_active:
-            self.result.msg = "此手机号已被冻结！"
+            self.result.msg = "此账号已被冻结！"
         elif data.platform in ["0", "1"] and not user.is_staff:
-            self.result.msg = "此手机号无权限！"
+            self.result.msg = "此账号无权限！"
         else:
             if not DEMO and count:
                 await count.delete()

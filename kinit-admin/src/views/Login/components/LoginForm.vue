@@ -52,8 +52,7 @@ const schema = reactive<FormSchema[]>([
   },
   {
     field: 'telephone',
-    label: t('login.telephone'),
-    value: '15020221010',
+    label: t('login.accountOrPhone'),
     component: 'Input',
     colProps: {
       span: 24
@@ -62,14 +61,13 @@ const schema = reactive<FormSchema[]>([
       style: {
         width: '100%'
       },
-      placeholder: t('login.telephonePlaceholder'),
-      maxlength: 11
+      placeholder: t('login.accountOrPhonePlaceholder'),
+      maxlength: 50
     }
   },
   {
     field: 'password',
     label: t('login.password'),
-    value: 'kinit2022',
     component: 'InputPassword',
     colProps: {
       span: 24

@@ -29,7 +29,7 @@ class LoginManage:
         result = models.VadminUser.verify_password(data.password, user.password)
         if result:
             return LoginResult(status=True, msg="验证成功")
-        return LoginResult(status=False, msg="手机号或密码错误")
+        return LoginResult(status=False, msg="账号或密码错误")
 
     @LoginValidation
     async def sms_login(self, data: LoginForm, request: Request, **kwargs) -> LoginResult:

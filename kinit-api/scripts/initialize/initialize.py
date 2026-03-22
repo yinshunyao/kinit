@@ -14,6 +14,7 @@ from application.settings import BASE_DIR, VERSION
 import os
 import sys
 from apps.vadmin.auth import models as auth_models
+from .user_password import prepare_vadmin_auth_user_rows
 from apps.vadmin.system import models as system_models
 from apps.vadmin.help import models as help_models
 import subprocess
@@ -47,9 +48,14 @@ class InitializeData:
     @classmethod
     def migrate_model(cls, env: Environment = Environment.pro):
         """
-        模型迁移映射到数据库
+        模型迁移映射到数据库。
+
+        顺序说明：须先 ``upgrade head``，使库版本与已有迁移脚本一致，否则
+        ``revision --autogenerate`` 会报 ``Target database is not up to date``。
+        然后再根据当前模型生成新迁移（若有差异），最后再 ``upgrade`` 应用新脚本。
         """
         alembic_cmd = [sys.executable, '-m', 'alembic', '--name', f'{env.value}']
+        subprocess.check_call([*alembic_cmd, 'upgrade', 'head'], cwd=BASE_DIR)
         subprocess.check_call([*alembic_cmd, 'revision', '--autogenerate', '-m', f'{VERSION}'], cwd=BASE_DIR)
         subprocess.check_call([*alembic_cmd, 'upgrade', 'head'], cwd=BASE_DIR)
         print(f"环境：{env}  {VERSION} 数据库表迁移完成")
@@ -75,6 +81,19 @@ class InitializeData:
                 sheet_data.append(dict(zip(headers, row)))
             self.datas[sheet] = sheet_data
 
+    def _rows_for_table(self, table_name: str) -> list | None:
+        """
+        按逻辑表名取行数据：优先 sheet 名与表名完全一致，否则匹配「去下划线/横杠/空格后小写」相同的工作表。
+        """
+        if table_name in self.datas:
+            return self.datas[table_name]
+        key = table_name.lower().replace("_", "").replace("-", "")
+        for sheet_name, rows in self.datas.items():
+            sn = sheet_name.lower().replace("_", "").replace("-", "").replace(" ", "")
+            if sn == key:
+                return rows
+        return None
+
     async def __generate_data(self, table_name: str, model):
         """
         生成数据
@@ -84,7 +103,12 @@ class InitializeData:
         """
         async_session = db_getter()
         db = await async_session.__anext__()
-        datas = self.datas.get(table_name)
+        datas = self._rows_for_table(table_name)
+        if datas is None:
+            print(f"警告: 未找到与数据表 {table_name} 对应的工作表（sheet 名应与表名一致或可去分隔符后匹配）")
+            datas = []
+        if table_name == "vadmin_auth_user" and datas:
+            datas = prepare_vadmin_auth_user_rows(datas)
         await db.execute(insert(model), datas)
         await db.flush()
         await db.commit()

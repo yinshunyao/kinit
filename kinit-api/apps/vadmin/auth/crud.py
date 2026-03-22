@@ -78,6 +78,30 @@ class UserDal(DalBase):
         else:
             return []
 
+    async def resolve_user_password_login(self, identifier: str):
+        """
+        密码登录：手机号走 telephone；账号走 name，若无则走 nickname（与历史数据/后台「昵称」作登录别名一致）。
+        """
+        from core.login_identifier import classify_password_login_identifier
+
+        kind, value = classify_password_login_identifier(identifier)
+        if kind == "telephone":
+            return await self.get_data(telephone=value, v_return_none=True)
+        user = await self.get_data(name=value, v_return_none=True)
+        if user:
+            return user
+        return await self.get_data(nickname=value, v_return_none=True)
+
+    async def get_user_for_login(self, identifier: str, method: str):
+        """
+        :param method: 0 密码登录，1 短信登录
+        """
+        if method == "1":
+            return await self.get_data(telephone=identifier, v_return_none=True)
+        if method == "0":
+            return await self.resolve_user_password_login(identifier)
+        return None
+
     async def update_login_info(self, user: models.VadminUser, last_ip: str) -> None:
         """
         更新当前登录信息

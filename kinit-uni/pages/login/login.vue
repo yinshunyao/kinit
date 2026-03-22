@@ -12,8 +12,8 @@
           v-model="loginForm.telephone"
           class="input"
           type="text"
-          placeholder="请输入手机号"
-          maxlength="30"
+          placeholder="请输入手机号或账号"
+          maxlength="50"
         />
       </view>
       <view class="input-item flex align-center">
@@ -77,8 +77,8 @@ export default {
   data() {
     return {
       loginForm: {
-        telephone: '15020221010',
-        password: 'kinit2022'
+        telephone: '',
+        password: ''
       },
 			isAgrement: false,
 			tooltipVisible: false

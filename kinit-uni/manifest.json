@@ -1,6 +1,6 @@
 {
     "name" : "kinit-uni",
-    "appid" : "__UNI__9D006F9",
+    "appid" : "__UNI__0B9B4CB",
     "description" : "",
     "versionName" : "1.0.0",
     "versionCode" : "100",
@@ -41,7 +41,7 @@
     },
     "quickapp" : {},
     "mp-weixin" : {
-        "appid" : "wxa510d7a34a124349",
+        "appid" : "wx45f5ca16974c92a8",
         "setting" : {
             "urlCheck" : false,
             "es6" : false,
