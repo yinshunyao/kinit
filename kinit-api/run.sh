@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # 一键启动：首次在脚本所在目录创建 .venv、安装依赖、按 settings.DEBUG 对齐执行数据初始化，然后启动服务。
-# 数据库连接：环境变量 KINIT_DATABASE_URL 或项目根目录 .env（见 .env.example），勿在配置文件中写死密码。
-# Redis：若启用（REDIS_DB_ENABLE 未关闭），须在 .env 中配置 KINIT_REDIS_URL；无密码可用 redis://127.0.0.1:6379/0，有密码见 .env.example。
+# 关键配置均在项目根目录 .env（见 .env.example）：数据库、Redis、HTTP 绑定 KINIT_BIND_HOST / KINIT_BIND_PORT 等。
 # 前置：已创建空数据库；MySQL 连接信息已注入环境。
 #
 # Apple Silicon：请用 arm64 的 Python 创建 .venv；若 asyncmy 报 incompatible architecture，请删 .venv 后指定
@@ -81,18 +80,13 @@ import os, sys
 from pathlib import Path
 root = Path(os.environ['KINIT_RUN_ROOT'])
 os.chdir(root)
+sys.path.insert(0, str(root))
 try:
-    from dotenv import load_dotenv
-    load_dotenv(root / '.env')
-except ImportError:
-    pass
-has_url = bool((os.environ.get('KINIT_DATABASE_URL') or '').strip())
-has_parts = all(
-    (os.environ.get(k) or '').strip()
-    for k in ('KINIT_DATABASE_HOST', 'KINIT_DATABASE_NAME', 'KINIT_DATABASE_USER')
-)
-if not has_url and not has_parts:
-    print('[run.sh] 未配置数据库：请设置 KINIT_DATABASE_URL，或分项设置 KINIT_DATABASE_HOST/NAME/USER（见 .env.example）。', file=sys.stderr)
+    from application.database_url import get_database_url_raw
+    get_database_url_raw()
+except Exception as e:
+    print('[run.sh] 数据库配置无效或未配置：', e, file=sys.stderr)
+    print('[run.sh] 请在 .env 中设置 KINIT_DATABASE_URL 或分项变量（见 .env.example）。', file=sys.stderr)
     sys.exit(1)
 "
 }
@@ -129,4 +123,4 @@ fi
 
 require_database_url
 
-exec python main.py run "$@"
+exec python main.py run

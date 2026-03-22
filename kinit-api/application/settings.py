@@ -6,16 +6,11 @@
 # @desc           : 主配置文件
 
 import os
-from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
-except ImportError:
-    pass
-
+from application.env_config import env_bool, env_int, env_str, load_project_dotenv
 from fastapi.security import OAuth2PasswordBearer
+
+load_project_dotenv()
 
 """
 系统版本
@@ -24,6 +19,10 @@ VERSION = "3.10.1"
 
 """安全警告: 不要在生产中打开调试运行!"""
 DEBUG = False
+
+"""HTTP 服务绑定（uvicorn），在 `.env` 中通过 KINIT_BIND_HOST / KINIT_BIND_PORT 配置"""
+BIND_HOST = env_str("KINIT_BIND_HOST", "0.0.0.0")
+BIND_PORT = env_int("KINIT_BIND_PORT", 9000)
 
 """是否开启演示功能：取消所有POST,DELETE,PUT操作权限"""
 DEMO = True
@@ -49,8 +48,6 @@ if DEBUG:
     from application.config.development import *
 else:
     from application.config.production import *
-
-from application.env_config import env_bool
 
 # 可通过 .env / 环境变量覆盖 application/config 中的默认开关
 MONGO_DB_ENABLE = env_bool("MONGO_DB_ENABLE", MONGO_DB_ENABLE)

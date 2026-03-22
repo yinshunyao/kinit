@@ -12,6 +12,7 @@ import { propTypes } from '@/utils/propTypes'
 import { Icon } from '@/components/Icon'
 import { useValidator } from '@/hooks/web/useValidator'
 import { BaseButton } from '@/components/Button'
+import { joinBackendPublic } from '@/config/backendPublic'
 
 const { required } = useValidator()
 const authStore = useAuthStore()
@@ -260,7 +261,7 @@ const save = async () => {
       const res = await putSystemSettingsApi(formData)
       if (res) {
         appStore.setTitle(formData.web_title || import.meta.env.VITE_APP_TITLE)
-        appStore.setLogoImage(formData.web_logo || '/media/system/logo.png')
+        appStore.setLogoImage(formData.web_logo || joinBackendPublic('/media/system/logo.png'))
         appStore.setFooterContent(formData.web_copyright || 'Copyright ©2022-present K')
         appStore.setIcpNumber(formData.web_icp_number || '')
         return ElMessage.success('更新成功')

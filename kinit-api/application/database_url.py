@@ -4,16 +4,10 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
-_ROOT = Path(__file__).resolve().parent.parent
+from application.env_config import load_project_dotenv
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv(_ROOT / ".env")
-except ImportError:
-    pass
+load_project_dotenv()
 
 KINIT_DATABASE_URL_ENV = "KINIT_DATABASE_URL"
 

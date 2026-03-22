@@ -9,7 +9,7 @@ const { result_code, unauthorized_code, request_timeout } = config
 
 // 创建axios实例
 const service: AxiosInstance = axios.create({
-  baseURL: '/api', // api 的 base_url
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: request_timeout, // 请求超时时间
   headers: {} // 请求头信息
 })

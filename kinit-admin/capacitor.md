@@ -1,4 +1,7 @@
-
+# 确保node版本
+```shell
+nvm use 22
+```
 
 # capacitor初始化
 ```shell
@@ -14,6 +17,9 @@ npx cap add ios
 ```shell
 # 打包到 kinit/kinit-admin/dist-pro
 pnpm run build:pro
+
+# 开发者模式运行
+pnpm run dev
 ```
 
 # capacitor 同步和编译

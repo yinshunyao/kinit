@@ -10,7 +10,7 @@ FastApi 更新文档：https://github.com/tiangolo/fastapi/releases
 FastApi Github：https://github.com/tiangolo/fastapi
 Typer 官方文档：https://typer.tiangolo.com/
 
-环境变量：MySQL 见 KINIT_DATABASE_URL；Redis 见 KINIT_REDIS_URL 与 REDIS_DB_ENABLE（加载逻辑在 application/settings.py）。
+关键配置从项目根目录 `.env` 注入（启动时加载），见 `.env.example` 与 README。HTTP 绑定：`KINIT_BIND_HOST`、`KINIT_BIND_PORT`。
 """
 
 from fastapi import FastAPI
@@ -71,17 +71,20 @@ def create_app():
 
 
 @shell_app.command()
-def run(
-        host: str = typer.Option(default='0.0.0.0', help='监听主机IP，默认开放给本网络所有主机'),
-        port: int = typer.Option(default=9000, help='监听端口')
-):
+def run():
     """
-    启动项目
+    启动项目；监听地址与端口由 `.env` 中 KINIT_BIND_HOST、KINIT_BIND_PORT 配置（见 application/settings.py）。
 
     factory: 在使用 uvicorn.run() 启动 ASGI 应用程序时，可以通过设置 factory 参数来指定应用程序工厂。
     应用程序工厂是一个返回 ASGI 应用程序实例的可调用对象，它可以在启动时动态创建应用程序实例。
     """
-    uvicorn.run(app='main:create_app', host=host, port=port, lifespan="on", factory=True)
+    uvicorn.run(
+        app="main:create_app",
+        host=settings.BIND_HOST,
+        port=settings.BIND_PORT,
+        lifespan="on",
+        factory=True,
+    )
 
 
 @shell_app.command()

@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/modules/app'
 import { ConfigGlobal } from '@/components/ConfigGlobal'
 import { useDesign } from '@/hooks/web/useDesign'
 import { getSystemBaseConfigApi } from '@/api/vadmin/system/settings'
+import { joinBackendPublic } from '@/config/backendPublic'
 
 const { getPrefixCls } = useDesign()
 
@@ -31,7 +32,7 @@ const setSystemConfig = async () => {
   const res = await getSystemBaseConfigApi()
   if (res) {
     appStore.setTitle(res.data.web_title || import.meta.env.VITE_APP_TITLE)
-    appStore.setLogoImage(res.data.web_logo || '/media/system/logo.png')
+    appStore.setLogoImage(res.data.web_logo || joinBackendPublic('/media/system/logo.png'))
     appStore.setFooterContent(res.data.web_copyright || 'Copyright ©2022-present K')
     appStore.setIcpNumber(res.data.web_icp_number || '')
     addMeta(

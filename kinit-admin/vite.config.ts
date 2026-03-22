@@ -21,6 +21,28 @@ function pathResolve(dir: string) {
   return resolve(root, '.', dir)
 }
 
+/** 开发环境：按 .env 中的 API / 媒体配置生成代理表 */
+function buildDevServerProxy(env: Record<string, string>) {
+  const apiBase = (env.VITE_API_BASE_URL || '/api').trim()
+  const target = (env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:9000').trim()
+  const mediaPath = (env.VITE_DEV_PROXY_MEDIA_PATH || '/media').trim()
+  const proxy: Record<string, { target: string; changeOrigin: boolean; rewrite: (p: string) => string }> = {}
+  if (apiBase.startsWith('/')) {
+    const escaped = apiBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    proxy[apiBase] = {
+      target,
+      changeOrigin: true,
+      rewrite: (path) => path.replace(new RegExp(`^${escaped}`), '')
+    }
+  }
+  proxy[mediaPath] = {
+    target,
+    changeOrigin: true,
+    rewrite: (path) => path
+  }
+  return proxy
+}
+
 export default ({ command, mode }: ConfigEnv): UserConfig => {
   let env = {} as any
   const isBuild = command === 'build'
@@ -125,20 +147,7 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
     },
     server: {
       port: 5000,
-      proxy: {
-        // 选项写法
-        '/api': {
-          target: 'http://127.0.0.1:9000',
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, '')
-        },
-        // 选项写法
-        '/media': {
-          target: 'http://127.0.0.1:9000',
-          changeOrigin: true,
-          rewrite: (path) => path
-        }
-      },
+      proxy: buildDevServerProxy(env),
       hmr: {
         overlay: false
       },

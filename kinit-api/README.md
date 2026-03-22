@@ -155,9 +155,14 @@ python main.py init --env dev
 
 ### 运行启动
 
+监听地址与端口由项目根目录 **`.env`** 中的 **`KINIT_BIND_HOST`**（默认 `0.0.0.0`）、**`KINIT_BIND_PORT`**（默认 `9000`）决定，与 `python main.py run` / `./run.sh` 一致；不再通过命令行参数传入。
+
 ```shell
-# 直接运行main文件
+# 直接运行 main（须已配置 .env，见上文数据库与 Redis 说明）
 python main.py run
+
+# 或使用一键脚本（会校验数据库配置是否可用）
+./run.sh
 ```
 
 ### Apple Silicon（M 系列）与 asyncmy
@@ -173,7 +178,7 @@ PYTHON=/opt/homebrew/bin/python3.10 ./run.sh
 
 ## 其他操作
 
-在线文档地址(在配置文件里面设置路径或者关闭)
+在线文档地址（在配置文件里面设置路径或者关闭；端口与 `KINIT_BIND_PORT` 一致）
 
 ```
 http://127.0.0.1:9000/docs
